@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/joho/godotenv"
 )
 
@@ -74,9 +75,15 @@ func main() {
 			`SELECT * FROM "Quizzes" WHERE "quiz_name"=$1;`,
 			quiz_name,
 		).Scan(&quiz.Quiz_id, &quiz.Quiz_name, &quiz.Submitted_by, &quiz.Submitted_at)
+
 		if err != nil {
-			fmt.Println("Query error", err)
-			c.JSON(500, gin.H{"error": "Quiz not found or query failed"})
+			if err == pgx.ErrNoRows {
+
+				c.JSON(404, gin.H{"error": "Quiz not found"})
+			} else {
+				fmt.Println("Query error:", err)
+				c.JSON(500, gin.H{"error": "Query failed"})
+			}
 			return
 		}
 
@@ -163,7 +170,13 @@ func main() {
 			quizData.Quiz.Submitted_by).Scan(&quiz_id)
 
 		if err != nil {
-			c.JSON(500, gin.H{"error": "QuizNameExists"})
+			if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
+				// Unique constraint violation on quiz_name
+				c.JSON(400, gin.H{"error": "QuizNameExists"})
+			} else {
+				// Some other DB error
+				c.JSON(500, gin.H{"error": "InsertFailed"})
+			}
 			return
 		}
 
