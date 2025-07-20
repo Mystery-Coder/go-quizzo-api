@@ -19,6 +19,17 @@ type Quiz struct {
 	Submitted_at time.Time `json:"submitted_at"`
 }
 
+type Question struct {
+	Question_id int    `json:"question_id"`
+	Quiz_id     int    `json:"quiz_id"`
+	Question    string `json:"question"`
+	Answer      string `json:"answer"`
+	Option1     string `json:"option1"`
+	Option2     string `json:"option2"`
+	Option3     string `json:"option3"`
+	Option4     string `json:"option4"`
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -64,7 +75,29 @@ func main() {
 			return
 		}
 
-		c.JSON(200, gin.H{"quiz": quiz})
+		var questions []Question
+		rows, err := conn.Query(context.Background(), `SELECT * from "Questions" WHERE "quiz_id"=$1`, quiz.Quiz_id)
+
+		if err != nil {
+			fmt.Println("Query err", err)
+			c.JSON(500, gin.H{"error": "query error"})
+			return
+		}
+
+		for rows.Next() {
+			var q Question
+
+			err := rows.Scan(&q.Question_id, &q.Quiz_id, &q.Question, &q.Answer, &q.Option1, &q.Option2, &q.Option3, &q.Option4)
+
+			if err != nil {
+				c.JSON(500, gin.H{"error": "query error"})
+				return
+			}
+
+			questions = append(questions, q)
+		}
+
+		c.JSON(200, gin.H{"quiz": quiz, "questions": questions})
 
 	})
 
