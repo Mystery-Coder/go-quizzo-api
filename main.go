@@ -30,6 +30,11 @@ type Question struct {
 	Option4     string `json:"option4"`
 }
 
+type QuizPost struct {
+	Quiz      Quiz       `json:"quiz"`
+	Questions []Question `json:"questions"`
+}
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
@@ -46,15 +51,15 @@ func main() {
 	r := gin.Default()
 
 	r.GET("/", func(c *gin.Context) {
-		var count string
+		// var count string
 
-		err = conn.QueryRow(context.Background(), "select count(*) from \"Quizzes\"").Scan(&count)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
+		// err = conn.QueryRow(context.Background(), "select count(*) from \"Quizzes\"").Scan(&count)
+		// if err != nil {
+		// 	fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
 
-		}
+		// }
 
-		fmt.Println("No of questins = ", count)
+		// fmt.Println("No of quizzes = ", count)
 
 		c.JSON(200, gin.H{"working": true})
 	})
@@ -66,7 +71,7 @@ func main() {
 		var quiz Quiz
 		err = conn.QueryRow(
 			context.Background(),
-			`SELECT * FROM "Quizzes" WHERE "quiz_name"=$1`,
+			`SELECT * FROM "Quizzes" WHERE "quiz_name"=$1;`,
 			quiz_name,
 		).Scan(&quiz.Quiz_id, &quiz.Quiz_name, &quiz.Submitted_by, &quiz.Submitted_at)
 		if err != nil {
@@ -76,7 +81,7 @@ func main() {
 		}
 
 		var questions []Question
-		rows, err := conn.Query(context.Background(), `SELECT * from "Questions" WHERE "quiz_id"=$1`, quiz.Quiz_id)
+		rows, err := conn.Query(context.Background(), `SELECT * from "Questions" WHERE "quiz_id"=$1;`, quiz.Quiz_id)
 
 		if err != nil {
 			fmt.Println("Query err", err)
@@ -98,6 +103,85 @@ func main() {
 		}
 
 		c.JSON(200, gin.H{"quiz": quiz, "questions": questions})
+
+	})
+
+	r.POST("/new_quiz", func(c *gin.Context) {
+		/*
+			INSERT INTO "Quizzes" ("quiz_name", "submitted_by") VALUES ('PhyTestQ', 'Test') returning quiz_id;
+
+			INSERT INTO "Questions" ("quiz_id", "question", "answer", "option1", "option2", "option3", "option4")
+			VALUES (5, 'Symbol of Force?', 'N', 'Pa', 'N', 'J', 's');
+
+			Insert queries for reference
+
+			PostgreSQL auto calculates IDs and time
+			Expects data as,
+			{
+				"quiz" : {
+					"quiz_id" : 0 //DUMMY VALUES to reuse Structs
+					"quiz_name" : Quiz1,
+					"submitted_by" : Name,
+					"submitted_at" : 0 //DUMMY VALUES to reuse Structs
+				},
+				"questions" : [
+					{
+						"question_id" : 0, //DUMMY VALUES to reuse Structs
+						"quiz_id" : 0, //DUMMY VALUES to reuse Structs
+						"question" : ".....",
+						"answer" : ".....",
+						"option1" : ".....",
+						"option2" : ".....",
+						"option3" : ".....",
+						"option4" : ".....",
+
+					},
+					{
+						...
+					}
+				]
+			}
+		*/
+
+		var quizData QuizPost
+
+		if err := c.BindJSON(&quizData); err != nil {
+			fmt.Println("Binding error", err)
+		}
+
+		// prettyJSON, err := json.MarshalIndent(quizData, "", "  ") // Using two spaces for indentation
+		// if err != nil {
+		// 	log.Fatalf("Error marshalling JSON: %v", err)
+		// }
+
+		// fmt.Println(string(prettyJSON))
+
+		var quiz_id int
+		err := conn.QueryRow(context.Background(),
+			`INSERT INTO "Quizzes" ("quiz_name", "submitted_by") VALUES ($1, $2) returning "quiz_id";`,
+			quizData.Quiz.Quiz_name,
+			quizData.Quiz.Submitted_by).Scan(&quiz_id)
+
+		if err != nil {
+			c.JSON(500, gin.H{"error": "QuizNameExists"})
+			return
+		}
+
+		questions := quizData.Questions
+
+		for qIdx := 0; qIdx < len(questions); qIdx++ {
+			q := questions[qIdx]
+
+			_, err := conn.Exec(context.Background(), `INSERT INTO "Questions" ("quiz_id", "question", "answer", "option1", "option2", "option3", "option4")
+			VALUES ($1, $2, $3, $4, $5, $6, $7);`, quiz_id, q.Question, q.Answer, q.Option1, q.Option2, q.Option3, q.Option4)
+
+			if err != nil {
+				c.JSON(500, gin.H{"error": "InsertError"})
+				return
+			}
+		}
+
+		c.JSON(200, gin.H{"success": true})
 
 	})
 
