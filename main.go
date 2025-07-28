@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -50,6 +51,7 @@ func main() {
 	defer conn.Close(context.Background())
 
 	r := gin.Default()
+	r.Use(cors.Default())
 
 	r.GET("/", func(c *gin.Context) {
 		// var count string
@@ -111,6 +113,19 @@ func main() {
 
 		c.JSON(200, gin.H{"quiz": quiz, "questions": questions})
 
+	})
+
+	r.GET("/quiz_exists", func(c *gin.Context) {
+		quiz_name := c.Query("quiz_name")
+
+		var exists bool
+		err := conn.QueryRow(context.Background(), `SELECT EXISTS (SELECT 1 FROM "Quizzes" where "quiz_name"=$1)`, quiz_name).Scan(&exists)
+
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Query Error"})
+			return
+		}
+		c.JSON(200, gin.H{"exists": exists})
 	})
 
 	r.POST("/new_quiz", func(c *gin.Context) {
