@@ -11,17 +11,17 @@ Used for Quizzo Web App
 
 # API Reference
 
-API supports 2 functional routes,
+API supports 3 functional routes,
 
-```
-GET / - Only for testing
-```
-
-```
+```http
 GET /quiz?quiz_name=<QUIZ NAME>
 ```
 
+```http
+GET /quiz_exists?quiz_name=<QUIZ Name>
 ```
+
+```http
 POST /new_quiz
 ```
 
@@ -30,3 +30,5 @@ Returns error 404 if quiz is not found and 500 for DB error.
 
 The route `/new_quiz` is to POST a new quiz to the DB.
 Returns 400 status code if quiz name is taken.
+
+The `/quiz_exists` route is just an SQL exists statement for uniqueness of a quiz name.
