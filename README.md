@@ -31,4 +31,4 @@ Returns error 404 if quiz is not found and 500 for DB error.
 The route `/new_quiz` is to POST a new quiz to the DB.
 Returns 400 status code if quiz name is taken.
 
-The `/quiz_exists` route is just an SQL exists statement for uniqueness of a quiz name.
+The `/quiz_exists` route is just an SQL exists statement for uniqueness of a quiz name. Returns status 200 on result, only fails on database error returning 500.
