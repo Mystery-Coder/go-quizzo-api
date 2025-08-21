@@ -51,18 +51,9 @@ func main() {
 	defer conn.Close(context.Background())
 
 	r := gin.Default()
-	r.Use(cors.Default())
+	r.Use(cors.New(cors.Config{AllowOrigins: []string{"https://quizzo-angular.vercel.app", "http://localhost:4200"}, AllowMethods: []string{"GET", "POST"}}))
 
 	r.GET("/", func(c *gin.Context) {
-		// var count string
-
-		// err = conn.QueryRow(context.Background(), "select count(*) from \"Quizzes\"").Scan(&count)
-		// if err != nil {
-		// 	fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
-
-		// }
-
-		// fmt.Println("No of quizzes = ", count)
 
 		c.JSON(200, gin.H{"working": true})
 	})
@@ -128,7 +119,7 @@ func main() {
 		c.JSON(200, gin.H{"exists": exists})
 	})
 
-	r.POST("/new_quiz", func(c *gin.Context) {
+	r.POST("/quiz", func(c *gin.Context) {
 		/*
 			INSERT INTO "Quizzes" ("quiz_name", "submitted_by") VALUES ('PhyTestQ', 'Test') returning quiz_id;
 
