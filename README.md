@@ -1,6 +1,6 @@
 # Go API for Quizzo App
 
-An API written in Go using Gin with pgx for PostgreSQL database
+An API written in Go using Gin with pgx for PostgreSQL(Supabase) database
 Used for Quizzo Web App
 
 # PostgreSQL Schema
