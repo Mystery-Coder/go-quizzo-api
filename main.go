@@ -160,6 +160,7 @@ func main() {
 
 		if err := c.BindJSON(&quizData); err != nil {
 			fmt.Println("Binding error", err)
+			return
 		}
 
 		// prettyJSON, err := json.MarshalIndent(quizData, "", "  ") // Using two spaces for indentation
